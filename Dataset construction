@@ -1,0 +1,161 @@
+## Spatial join and create datasubset for analysis 
+
+#Imports 
+
+
+from geopandas import geodataframe
+from geopandas.geodataframe import _dataframe_set_geometry
+from geopandas.plotting import plot_dataframe
+import numpy as np
+from numpy.lib.arraysetops import isin
+
+import pandas as pd
+import geopandas as gpd  
+import os 
+import fiona as fiona 
+
+import matplotlib.pyplot as plt
+
+## Counting the number of leys in each field - that is - Lateral calculation of the number of perennial leys for the 18 years per row ( i e Field) in dataset
+## importing the created dataset with all the years of MAJORITY crops on each included field for 18 years. 
+# 2020_major
+
+
+def crop_start(): 
+    workingfil = gpd.read_file(r"")
+    df_work = pd.DataFrame(workingfil)
+
+    global df_working
+    df_working = df_work.copy()
+
+    df_working.to_csv(r'', sep= ';')
+
+    df_working['time'] = df_working['prov_ar_2']-df_working['prov_ar']
+    df_working1 = df_working[pd.notnull(df_working['prov_ar_2'])] 
+    
+    #print(df_working1)
+        
+    global df_working2
+    df_working2 = df_working[pd.notnull(df_working['prov_ar_2'])]     #Remving all the NaN  - i.e. the values outside of our study area 
+
+    df_years = df_working[['2020_major','2019_major','2018_major','2017_major','2016_major','2015_major','2014_major','2013_major','2012_major','2011_major','2010_major',
+                            '2009_major','2008_major','2007_major','2006_major',
+                            '2005_major','2004_major','2003_major', 'time']].copy()
+    global df_anno_work
+    df_anno_work = df_years[pd.notnull(df_years['time'])]
+    #print(df_anno_work)
+
+crop_start()
+
+def crop_sort_continue():
+        
+    # CONDITIONS BASED ON CROPS
+    # From Jordbruksverkets Sweden catagorization of cultivatied crops - each given a number
+
+    spann_values = [1, 2, 3, 4, 5, 7, 8]
+    raps_values = [20, 21]
+    vall_values = [16, 49, 50, 53, 58, 59, 80, 62]
+    ovrigt_values = [95, 90, 89, 88, 82, 81, 68, 67, 66, 65, 52, 45, 34, 32, 31, 23, 12, 6]
+    trada = [60]
+    # update number for crops is important! 
+
+    dff_years = df_anno_work[['time']]
+
+    dff = df_anno_work.copy()
+    
+
+    dff['cerealnum'] = (dff.isin(spann_values).sum(axis=1))
+
+    dff['vallnum'] = dff.isin(vall_values).sum(axis=1)
+
+    dff['rapsnum'] = dff.isin(raps_values).sum(axis=1)
+
+    dff['ovrigtnum'] = dff.isin(ovrigt_values).sum(axis=1)
+
+    dff['tradanum'] = dff.isin(trada).sum(axis=1)
+    
+    print(dff)
+    
+    dff.drop(columns=['2020_major','2019_major','2018_major','2017_major','2016_major','2015_major','2014_major','2013_major','2012_major','2011_major','2010_major',
+                           '2009_major','2008_major','2007_major','2006_major',
+                           '2005_major','2004_major','2003_major'],inplace=True, axis=1)
+    
+    print(dff)
+    
+    # Next is to add the dff, all of it, to the nice working2
+    
+    df_working2['cereal'] = dff['cerealnum'].values
+    df_working2['vall'] = dff['vallnum'].values
+    df_working2['raps'] = dff['rapsnum'].values
+    df_working2['ovrigt'] = dff['ovrigtnum'].values
+    df_working2['trada'] = dff['tradanum'].values
+    
+    df_working2.drop(columns=['2020_major','2019_major','2018_major','2017_major','2016_major','2015_major','2014_major','2013_major','2012_major','2011_major','2010_major',
+                           '2009_major','2008_major','2007_major','2006_major',
+                           '2005_major','2004_major','2003_major','prov_ar', 'prov_ar_2',
+                            'jordart'],inplace=True, axis=1)
+
+    print(df_working2)
+    
+    df_working2.to_csv(r'', sep= ';')
+
+    ## FROM HERE i got the dataset with the number of all the perennial leys for the time period in one column for each row  (i e Field)
+    
+    df_saveing1 = pd.DataFrame(df_working2)
+    df_saving2 = gpd.GeoDataFrame(df_saveing1)
+    
+    df_saving2.to_file(r'')
+    df_saving2.to_pickle(r'')
+  
+  
+    print('a okey')
+    
+crop_sort_continue()
+
+
+def mcd_analysis_prep():
+    
+    
+    ## Adding the SASI data to each of these fields
+    
+    df_mcdin = pd.read_pickle(r"")
+    df_mcd = pd.DataFrame(df_mcdin)
+
+    #print(df_mcd)
+    print(df_mcd.keys())
+    
+    df_mcd_work = df_mcd[[ 'AREAL', 'x', 'y', 'pH',  
+       'c', 'n', 'c/n', 'cacao', 'orgmat', 'ler', 'pH_2', 'c_2', 'n_2',      
+       'c/n_2', 'orgmat_2', 'geometry', 'time', 'share_cereal', 'share_vall',
+       'share_raps', 'share_ovrigt', 'share_trada']]
+ 
+    print(df_mcd_work.dtypes)
+    
+
+    # Simple method of creating the SOC/Clay ratios directly in the script
+    
+    
+    df_mcd_work['socclay_1'] = df_mcd_work['c'] / df_mcd_work['ler']
+    df_mcd_work['socclay_2'] = df_mcd_work['c_2']/df_mcd_work['ler']
+    
+    print(df_mcd_work)
+    
+    df_mcd_work.to_pickle(r'')
+
+mcd_analysis_prep()
+
+def mcd_analysis():     
+    
+    dff_mcdin = pd.read_pickle(r'')
+    dff_mcd = pd.DataFrame(dff_mcdin)
+    
+    print(dff_mcd.keys())
+    
+    dff_mcd_w = dff_mcd[[ 'pH', 'c', 'n', 'c/n', 'orgmat', 'ler',
+       'pH_2', 'c_2', 'n_2', 'c/n_2', 'orgmat_2', 'time',
+       'share_cereal', 'share_vall', 'share_raps', 'share_ovrigt',
+       'share_trada', 'socclay_1', 'socclay_2']].copy()
+    
+    print(dff_mcd_w)
+
+mcd_analysis()
